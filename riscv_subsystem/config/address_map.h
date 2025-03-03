@@ -1,0 +1,5 @@
+#define  MEM  0x00000000
+#define  GPIO  0x10000000
+#define  UART  0x10000018
+#define  TIMER  0x1000001C
+#define  CONFIG  0x80000000

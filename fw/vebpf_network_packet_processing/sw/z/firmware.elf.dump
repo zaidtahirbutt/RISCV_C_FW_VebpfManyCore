@@ -1,0 +1,140 @@
+
+firmware.elf:     file format elf32-littleriscv
+
+
+Disassembly of section .memory:
+
+00000000 <_start>:
+   0:	10000137          	lui	sp,0x10000
+   4:	130000ef          	jal	ra,134 <main>
+
+00000008 <_hw_shutdown>:
+   8:	000000ef          	jal	ra,8 <_hw_shutdown>
+
+0000000c <_c2i>:
+   c:	00851513          	slli	a0,a0,0x8
+  10:	00b56533          	or	a0,a0,a1
+  14:	00851513          	slli	a0,a0,0x8
+  18:	00c56633          	or	a2,a0,a2
+  1c:	00861613          	slli	a2,a2,0x8
+  20:	00d66533          	or	a0,a2,a3
+  24:	00008067          	ret
+
+00000028 <_i2c>:
+  28:	00050793          	mv	a5,a0
+  2c:	00058c63          	beqz	a1,44 <_i2c+0x1c>
+  30:	00100713          	li	a4,1
+  34:	00e58e63          	beq	a1,a4,50 <_i2c+0x28>
+  38:	00200713          	li	a4,2
+  3c:	41855513          	srai	a0,a0,0x18
+  40:	00e58463          	beq	a1,a4,48 <_i2c+0x20>
+  44:	00008067          	ret
+  48:	4107d513          	srai	a0,a5,0x10
+  4c:	00008067          	ret
+  50:	40855513          	srai	a0,a0,0x8
+  54:	00008067          	ret
+
+00000058 <cl>:
+  58:	100017b7          	lui	a5,0x10001
+  5c:	82a7a623          	sw	a0,-2004(a5) # 1000082c <end+0x100006b6>
+  60:	82b7aa23          	sw	a1,-1996(a5)
+  64:	00100713          	li	a4,1
+  68:	80e7ae23          	sw	a4,-2020(a5)
+  6c:	81c7a783          	lw	a5,-2020(a5)
+  70:	10001737          	lui	a4,0x10001
+  74:	4017d793          	srai	a5,a5,0x1
+  78:	0017f793          	andi	a5,a5,1
+  7c:	00079863          	bnez	a5,8c <cl+0x34>
+  80:	81c72783          	lw	a5,-2020(a4) # 1000081c <end+0x100006a6>
+  84:	0027f793          	andi	a5,a5,2
+  88:	fe078ce3          	beqz	a5,80 <cl+0x28>
+  8c:	100017b7          	lui	a5,0x10001
+  90:	83c7a503          	lw	a0,-1988(a5) # 1000083c <end+0x100006c6>
+  94:	00008067          	ret
+
+00000098 <write_led>:
+  98:	100007b7          	lui	a5,0x10000
+  9c:	00a7a023          	sw	a0,0(a5) # 10000000 <end+0xffffe8a>
+  a0:	00008067          	ret
+
+000000a4 <read_sw>:
+  a4:	100007b7          	lui	a5,0x10000
+  a8:	0007a503          	lw	a0,0(a5) # 10000000 <end+0xffffe8a>
+  ac:	00008067          	ret
+
+000000b0 <write_uart>:
+  b0:	100007b7          	lui	a5,0x10000
+  b4:	00a7ac23          	sw	a0,24(a5) # 10000018 <end+0xffffea2>
+  b8:	00008067          	ret
+
+000000bc <read_uart>:
+  bc:	100007b7          	lui	a5,0x10000
+  c0:	0187a503          	lw	a0,24(a5) # 10000018 <end+0xffffea2>
+  c4:	00008067          	ret
+
+000000c8 <write_i2c>:
+  c8:	00251513          	slli	a0,a0,0x2
+  cc:	100007b7          	lui	a5,0x10000
+  d0:	00a787b3          	add	a5,a5,a0
+  d4:	00b7ae23          	sw	a1,28(a5) # 1000001c <end+0xffffea6>
+  d8:	00008067          	ret
+
+000000dc <read_i2c>:
+  dc:	00251513          	slli	a0,a0,0x2
+  e0:	100007b7          	lui	a5,0x10000
+  e4:	00a787b3          	add	a5,a5,a0
+  e8:	01c7a503          	lw	a0,28(a5) # 1000001c <end+0xffffea6>
+  ec:	00008067          	ret
+
+000000f0 <write_spi>:
+  f0:	00251513          	slli	a0,a0,0x2
+  f4:	100007b7          	lui	a5,0x10000
+  f8:	00a787b3          	add	a5,a5,a0
+  fc:	40b7ae23          	sw	a1,1052(a5) # 1000041c <end+0x100002a6>
+ 100:	00008067          	ret
+
+00000104 <read_spi>:
+ 104:	00251513          	slli	a0,a0,0x2
+ 108:	100007b7          	lui	a5,0x10000
+ 10c:	00a787b3          	add	a5,a5,a0
+ 110:	41c7a503          	lw	a0,1052(a5) # 1000041c <end+0x100002a6>
+ 114:	00008067          	ret
+ 118:	1941                	addi	s2,s2,-16
+ 11a:	0000                	unimp
+ 11c:	7200                	flw	fs0,32(a2)
+ 11e:	7369                	lui	t1,0xffffa
+ 120:	01007663          	bgeu	zero,a6,12c <read_spi+0x28>
+ 124:	0000000f          	fence	unknown,unknown
+ 128:	7205                	lui	tp,0xfffe1
+ 12a:	3376                	fld	ft6,376(sp)
+ 12c:	6932                	flw	fs2,12(sp)
+ 12e:	7032                	flw	ft0,44(sp)
+ 130:	0030                	addi	a2,sp,8
+	...
+
+00000134 <main>:
+ 134:	10000737          	lui	a4,0x10000
+ 138:	00200793          	li	a5,2
+ 13c:	00f72023          	sw	a5,0(a4) # 10000000 <end+0xffffe8a>
+ 140:	00f72023          	sw	a5,0(a4)
+ 144:	ff9ff06f          	j	13c <main+0x8>
+ 148:	3a434347          	fmsub.d	ft6,ft6,ft4,ft7,rmm
+ 14c:	2820                	fld	fs0,80(s0)
+ 14e:	29554e47          	fmsub.s	ft8,fa0,fs5,ft5,rmm
+ 152:	3120                	fld	fs0,96(a0)
+ 154:	2e31                	jal	470 <end+0x2fa>
+ 156:	2e31                	jal	472 <end+0x2fc>
+ 158:	0030                	addi	a2,sp,8
+ 15a:	1b41                	addi	s6,s6,-16
+ 15c:	0000                	unimp
+ 15e:	7200                	flw	fs0,32(a2)
+ 160:	7369                	lui	t1,0xffffa
+ 162:	01007663          	bgeu	zero,a6,16e <main+0x3a>
+ 166:	0011                	c.nop	4
+ 168:	0000                	unimp
+ 16a:	1004                	addi	s1,sp,32
+ 16c:	7205                	lui	tp,0xfffe1
+ 16e:	3376                	fld	ft6,376(sp)
+ 170:	6932                	flw	fs2,12(sp)
+ 172:	7032                	flw	ft0,44(sp)
+ 174:	0030                	addi	a2,sp,8

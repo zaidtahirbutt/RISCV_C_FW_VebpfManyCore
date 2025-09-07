@@ -41,7 +41,7 @@
 //
 // Make this constant equal to 1 if you are generating hex file for simulation and 0 for synthesis
 // for SIMULATION_TESTING = 1, error printf() statements will not be printed, only error led = 5 will be turned on for errors
-#define SIMULATION_TESTING 0
+#define SIMULATION_TESTING 1 //0
 
 // for DEBUG == 1 both error LED value = 5 will turn on for errors and printf() statements for errors will be printed out 
 #define DEBUG 0 //1 //0 //1 //0//1 //0 // 0 //0 //1 //0 // 1 //0 //1 

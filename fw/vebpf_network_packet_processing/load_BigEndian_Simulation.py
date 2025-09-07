@@ -17,7 +17,8 @@ address = []
 counter = 0
 
 # Insert name of file to convert to sim file here:
-with open('firmware.hex') as file:
+# with open('firmware.hex') as file:
+with open('2024_9_12_edgetestbed_a100T30_VeBPF_pgmLoaderV2_firewallTYPE1combinedSim_reducedLinker_1SIM_0DEBUG.hex') as file:
     # **** VIP!!! REMEMBER TO CHANGE BOTH NAME OF INPUT HEX FILE AND OUTPUT HEX SIM FILE ****
     for line in file:
         #print(line) # Prints each while line separately
@@ -88,7 +89,8 @@ with open('firmware.hex') as file:
     # sys.exit()
 
  # name of output sim file
-with open('firmware_sim.hex', 'w') as f:  
+# with open('firmware_sim.hex', 'w') as f:  
+with open('2024_9_12_edgetestbed_a100T30_VeBPF_pgmLoaderV2_firewallTYPE1combinedSim_reducedLinker_1SIM_0DEBUG_SIM.hex', 'w') as f:  
     for word in program:
         f.write(word)
         f.write("\n")

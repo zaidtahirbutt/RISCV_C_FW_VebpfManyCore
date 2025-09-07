@@ -1,11 +1,14 @@
 # Hello world
-SOURCE	= ./sw/z/2024_10_13_simpeLedHIGH.c
+# SOURCE	= ./sw/z/2024_10_13_simpeLedHIGH.c
 
-# RISCV rx pkt filtering fw source file
+# RISCV rx pkt filtering fw source file (SIMULATION)
 # SOURCE	= ./sw/z/2024_1_24_edgetestbed_a100T26_RISCV_throughput_cal_firewallTYPE1_v5_v2_onlyHdr_TYPE4_Exp_throughput_cal_sim.c
 
-# VeBPF rx pkt filtering fw source file
+# VeBPF rx pkt filtering throughput calculation fw source file
 # SOURCE	= ./sw/z/2024_1_11_edgetestbed_a100T26_VeBPF_throughput_cal_firewallTYPE1_v5_TYPE4_Exp_SYN.c
+
+# VeBPF rx pkt filtering fw source file (SIMULATION)
+SOURCE	= ./sw/z/2024_9_12_edgetestbed_a100T30_VeBPF_pgmLoaderV2_firewallTYPE1combinedSim_reducedLinker_1SIM_0DEBUG.c
 
 # tx pkt fw source file
 # SOURCE	= ./sw/z/2024_5_16_edgetestbed_a100T27_tx_pipeline_v15_SYN_reducedLinker_0SIM_1DEBUG_0UDPcksum_1IPv4Cksum.c

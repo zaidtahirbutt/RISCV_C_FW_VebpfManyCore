@@ -49,7 +49,7 @@
 #define TOTAL_RXPKTS_IN_EXPERIMENT_OF_FIREWALL_TYPE4 34000
 
 #define IGNORE_INITIAL_FIREWALL_MALICIOUS_RXPKTS 20 //4
-#define TOTAL_MALICIOUS_RXPKTS_FOR_LATENCY_CAL 8000  // for TYPE1 firewall Experiments // 1100 // 5
+#define TOTAL_MALICIOUS_RXPKTS_FOR_LATENCY_CAL 100  // for TYPE1 firewall Experiments // 1100 // 5
 
 // #define	UDP_DEV_PORT	6783
 // #define	UDP_HOST_PORT	6784
@@ -289,7 +289,7 @@ int	main(int argc, char **argv) {
 
 	    if (SIMULATION_TESTING) {
 
-	    	if (count_malicious_rxpkts >= 4) {
+	    	if (count_malicious_rxpkts >= TOTAL_MALICIOUS_RXPKTS_FOR_LATENCY_CAL) {
 
 	    		// turn all LEDs ON
 	    		write_led(15);
@@ -304,7 +304,7 @@ int	main(int argc, char **argv) {
 	    }
 	    else {
 
-	    	if (count_malicious_rxpkts >= 4) {
+	    	if (count_malicious_rxpkts >= TOTAL_MALICIOUS_RXPKTS_FOR_LATENCY_CAL) {
 
 				// start_timer started at IGNORE_INITIAL_FIREWALL_MALICIOUS_RXPKTS and ended at TOTAL_MALICIOUS_RXPKTS_FOR_LATENCY_CAL
 				total_time_taken = read_timer() - start_timer;

@@ -36,7 +36,7 @@ address = []
 counter = 0;
 
 # Insert hex file name for uploading RISCV inst_mem to FPGA UART
-with open('firmware.hex') as file:
+with open('2024_9_12_edgetestbed_a100T30_VeBPF_pgmLoaderV2_firewallTYPE1combinedSim_reducedLinker_0SIM_0DEBUG_SYN.hex') as file:
     for line in file:
         #print(line) # Prints each while line separately
         if "@" in line: 

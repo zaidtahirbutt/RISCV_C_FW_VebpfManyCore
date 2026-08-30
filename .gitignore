@@ -1,0 +1,8 @@
+# Build output -- everything under fw/*/build/ is regenerable via `make APP=<name>`
+build/
+*.o
+*.elf
+*.map
+*.dump
+__pycache__/
+*.pyc

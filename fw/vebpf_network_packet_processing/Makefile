@@ -19,32 +19,13 @@
 
 APP ?= vebpf_firewall_syn
 
-SRC_DIR = ./sw/z
+APPS_DIR = ./apps
+LIB_DIR  = ./lib
 
-# ---------------------------------------------------------------------------
-# Named apps -> source files. Selecting a build is `make APP=<name>`, never
-# editing which line is commented out.
-#
-# Every app listed here is verified to compile AND link cleanly. Nine older
-# sources (simple_icmp_loop, gettysburg, job, pingtest, test.c, test2.c,
-# test3-5.c) are deliberately NOT listed: they were written against an older
-# pkt.c and no longer link against the current one, which calls write_led()
-# and tx_busy() that only the newer apps define (pingtest.c additionally
-# fails to compile). They are kept under archive/ for provenance rather than
-# advertised as buildable apps.
-# ---------------------------------------------------------------------------
-APP_SRC_vebpf_firewall_syn            = $(SRC_DIR)/2024_9_12_edgetestbed_a100T30_VeBPF_pgmLoaderV2_firewallTYPE1combinedSim_reducedLinker_0SIM_0DEBUG_SYN.c
-APP_SRC_vebpf_firewall_sim            = $(SRC_DIR)/2024_9_12_edgetestbed_a100T30_VeBPF_pgmLoaderV2_firewallTYPE1combinedSim_reducedLinker_1SIM_0DEBUG.c
-APP_SRC_riscv_firewall_throughput_syn = $(SRC_DIR)/2024_1_24_edgetestbed_a100T26_RISCV_throughput_cal_firewallTYPE1_v5_v2_onlyHdr_TYPE4_Exp_throughput_cal_SYN.c
-APP_SRC_riscv_firewall_throughput_sim = $(SRC_DIR)/2024_1_24_edgetestbed_a100T26_RISCV_throughput_cal_firewallTYPE1_v5_v2_onlyHdr_TYPE4_Exp_throughput_cal_SIM.c
-APP_SRC_vebpf_throughput_cal          = $(SRC_DIR)/2024_1_11_edgetestbed_a100T26_VeBPF_throughput_cal_firewallTYPE1_v5_TYPE4_Exp_SYN.c
-APP_SRC_tx_pipeline                   = $(SRC_DIR)/2024_5_16_edgetestbed_a100T27_tx_pipeline_v15_SYN_reducedLinker_0SIM_1DEBUG_0UDPcksum_1IPv4Cksum_SYN.c
-APP_SRC_led_hello_world               = $(SRC_DIR)/2024_10_13_simpeLedHIGH.c
-APP_SRC_simple_pingtest_loop          = $(SRC_DIR)/simple_pingtest_loop.c
-APP_SRC_simple_udp_loop               = $(SRC_DIR)/simple_udp_loop.c
-
-# `SOURCE=<path>` still works as a raw escape hatch for a one-off file.
-SOURCE ?= $(APP_SRC_$(APP))
+# One directory per app, each with a main.c -- so selecting a build is
+# `make APP=<name>`, and adding an app is creating a directory. No mapping
+# table and no editing which SOURCE= line is commented out.
+SOURCE ?= $(APPS_DIR)/$(APP)/main.c
 
 BUILD_DIR   = build/$(APP)
 OUT         = $(BUILD_DIR)/firmware
@@ -53,7 +34,7 @@ CONFIG      = rv32i
 ABI         = ilp32
 LINKER      = ./sw/firmware.ld
 CROSS       = riscv32-unknown-elf-
-CROSSCFLAGS = -O3 -Wno-int-conversion -march=$(CONFIG) -mabi=$(ABI) -ffreestanding -nostdlib
+CROSSCFLAGS = -O3 -Wno-int-conversion -march=$(CONFIG) -mabi=$(ABI) -ffreestanding -nostdlib -I$(LIB_DIR)
 CROSSLDFLAGS = -march=$(CONFIG) -mabi=$(ABI) -ffreestanding -nostdlib  -Wl,-M
 
 # Shared protocol-stack objects linked into every app, in the exact order the
@@ -66,10 +47,7 @@ LIBOBJS = $(BUILD_DIR)/icmp.o $(BUILD_DIR)/pkt.o $(BUILD_DIR)/arp.o \
 # is built in place rather than under build/.
 RESET_HANDLER = ./sw/Reset_Handler.o
 
-APP_HEADERS = $(SRC_DIR)/icmp.h $(SRC_DIR)/pkt.h $(SRC_DIR)/board.h \
-              $(SRC_DIR)/ipproto.h $(SRC_DIR)/arp.h $(SRC_DIR)/protoconst.h \
-              $(SRC_DIR)/etcnet.h $(SRC_DIR)/ethproto.h $(SRC_DIR)/ipcksum.h \
-              $(SRC_DIR)/udpproto.h ../../riscv_subsystem/sw/utils.h
+APP_HEADERS = $(wildcard $(LIB_DIR)/*.h) ../../riscv_subsystem/sw/utils.h
 
 .PHONY: all
 all: check-app $(OUT).hex $(OUT).sim.hex $(OUT).vivado.hex
@@ -82,18 +60,17 @@ all: check-app $(OUT).hex $(OUT).sim.hex $(OUT).vivado.hex
 
 .PHONY: check-app
 check-app:
-	@if [ -z "$(SOURCE)" ]; then \
-		echo "error: unknown APP '$(APP)'. Run 'make list-apps' for valid names."; exit 1; \
-	fi
 	@if [ ! -f "$(SOURCE)" ]; then \
-		echo "error: APP '$(APP)' maps to '$(SOURCE)', which does not exist."; exit 1; \
+		echo "error: no app '$(APP)' ($(SOURCE) does not exist)."; \
+		echo "Run 'make list-apps' for valid names."; exit 1; \
 	fi
 
 .PHONY: list-apps
 list-apps:
 	@echo "Available APP names (default: vebpf_firewall_syn):"
-	@$(foreach v,$(sort $(filter APP_SRC_%,$(.VARIABLES))), \
-		printf "  %-34s %s\n" "$(patsubst APP_SRC_%,%,$(v))" "$($(v))";)
+	@for d in $(APPS_DIR)/*/; do \
+		[ -f "$$d/main.c" ] && printf "  %s\n" "$$(basename $$d)"; \
+	done
 
 $(BUILD_DIR):
 	@mkdir -p $(BUILD_DIR)
@@ -101,7 +78,7 @@ $(BUILD_DIR):
 $(RESET_HANDLER): ./sw/Reset_Handler.S
 	$(CROSS)gcc $(CROSSCFLAGS) -c ./sw/Reset_Handler.S -o $@
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(SRC_DIR)/%.h | $(BUILD_DIR)
+$(BUILD_DIR)/%.o: $(LIB_DIR)/%.c $(LIB_DIR)/%.h | $(BUILD_DIR)
 	$(CROSS)gcc $(CROSSCFLAGS) -c -o $@ $<
 
 $(OUT).o: $(SOURCE) $(APP_HEADERS) | $(BUILD_DIR)

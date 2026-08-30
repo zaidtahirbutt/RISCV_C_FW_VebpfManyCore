@@ -1,0 +1,46 @@
+name: build-firmware
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install RISC-V toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-riscv64-unknown-elf
+
+      # The Debian package is multilib and supports rv32i/ilp32 despite the
+      # riscv64 name, so only the tool prefix needs overriding.
+      - name: Build every app
+        working-directory: fw/vebpf_network_packet_processing
+        run: |
+          set -e
+          FAILED=""
+          for app in $(make list-apps | tail -n +2 | awk '{print $1}'); do
+            echo "::group::$app"
+            if make APP=$app CROSS=riscv64-unknown-elf-; then
+              echo "ok $app"
+            else
+              echo "FAILED $app"; FAILED="$FAILED $app"
+            fi
+            echo "::endgroup::"
+          done
+          if [ -n "$FAILED" ]; then echo "Apps failed:$FAILED"; exit 1; fi
+
+      - name: Check every app emitted all output formats
+        working-directory: fw/vebpf_network_packet_processing
+        run: |
+          set -e
+          for app in $(make list-apps | tail -n +2 | awk '{print $1}'); do
+            for f in firmware.hex firmware.sim.hex firmware.vivado.hex firmware.elf; do
+              test -s "build/$app/$f" || { echo "missing build/$app/$f"; exit 1; }
+            done
+          done
+          echo "all apps produced all formats"

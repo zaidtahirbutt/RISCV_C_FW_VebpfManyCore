@@ -1,9 +1,39 @@
-// Make this constant equal to 1 if you are generating hex file for simulation and 0 for synthesis
-// for SIMULATION_TESTING = 1, error printf() statements will not be printed, only error led = 5 will be turned on for errors
-#define SIMULATION_TESTING 0 //1 //0
+// ---------------------------------------------------------------------------
+// Build-configuration flags.
+//
+// These are the two knobs that decide whether a build targets simulation or a
+// synthesized design, and whether the network-packet debug output over UART is
+// compiled in. Both used to be plain #defines edited by hand here, which meant
+// (a) every application shared one setting, and (b) which setting a given hex
+// file was built with survived only in that file's name. Two applications
+// (riscv_firewall_throughput_sim / _syn) have byte-identical sources and were
+// distinguished ONLY by these values, so with a single shared setting they
+// built identically and their names meant nothing.
+//
+// They are now overridable from the build. Each app declares its own values in
+// apps/<name>/app.mk, and the Makefile passes them as -D flags, so:
+//
+//     make APP=vebpf_firewall_syn                 # app's own defaults
+//     make APP=vebpf_firewall_syn DEBUG=1         # + packet debug over UART
+//     make APP=vebpf_firewall_syn SIMULATION_TESTING=1 DEBUG=1
+//
+// The #ifndef guards keep these values as the fallback when nothing is passed,
+// so including this header from a non-Makefile context still works.
+// ---------------------------------------------------------------------------
 
-// for DEBUG == 1 both error LED value = 5 will turn on for errors and printf() statements for errors will be printed out 
-#define DEBUG 0 //1 //0 //1 //0//1 //0 // 0 //0 //1 //0 // 1 //0 //1 
+// 1 when generating a hex file for simulation, 0 for synthesis.
+// With SIMULATION_TESTING = 1, error printf() statements are NOT printed; only
+// error led = 5 is turned on for errors.
+#ifndef SIMULATION_TESTING
+#define SIMULATION_TESTING 0
+#endif
+
+// With DEBUG == 1, error LED value = 5 turns on for errors AND printf()
+// statements for errors are printed. Set this on a SYNTHESIS build to watch
+// Ethernet packet processing over the debug UART on real hardware.
+#ifndef DEBUG
+#define DEBUG 0
+#endif
 
 // this constant should be equal to TX_PKT_DESC_TABLE_DEPTH parameter from network subsystem
 #define DESC_TABLE_TX_DEPTH 4  // should be multiple of 2 and if changed here, it should be changed in network subsystem hardware

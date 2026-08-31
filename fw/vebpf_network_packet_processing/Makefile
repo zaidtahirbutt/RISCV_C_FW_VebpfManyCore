@@ -27,6 +27,18 @@ LIB_DIR  = ./lib
 # table and no editing which SOURCE= line is commented out.
 SOURCE ?= $(APPS_DIR)/$(APP)/main.c
 
+# Per-app build configuration (SIMULATION_TESTING / DEBUG). Each app declares
+# its own defaults with ?= so a command-line value wins:
+#     make APP=vebpf_firewall_syn DEBUG=1
+# These two flags decide simulation-vs-synthesis behaviour and whether the
+# network-packet debug output over UART is compiled in. They used to be plain
+# #defines hand-edited in lib/board.h, shared by every app -- which is why
+# riscv_firewall_throughput_sim and _syn (byte-identical sources) used to build
+# byte-identically.
+-include $(APPS_DIR)/$(APP)/app.mk
+SIMULATION_TESTING ?= 0
+DEBUG              ?= 0
+
 BUILD_DIR   = build/$(APP)
 OUT         = $(BUILD_DIR)/firmware
 
@@ -34,7 +46,8 @@ CONFIG      = rv32i
 ABI         = ilp32
 LINKER      = ./sw/firmware.ld
 CROSS       = riscv32-unknown-elf-
-CROSSCFLAGS = -O3 -Wno-int-conversion -march=$(CONFIG) -mabi=$(ABI) -ffreestanding -nostdlib -I$(LIB_DIR)
+CONFIG_DEFINES = -DSIMULATION_TESTING=$(SIMULATION_TESTING) -DDEBUG=$(DEBUG)
+CROSSCFLAGS = -O3 -Wno-int-conversion -march=$(CONFIG) -mabi=$(ABI) -ffreestanding -nostdlib -I$(LIB_DIR) $(CONFIG_DEFINES)
 CROSSLDFLAGS = -march=$(CONFIG) -mabi=$(ABI) -ffreestanding -nostdlib  -Wl,-M
 
 # Shared protocol-stack objects linked into every app, in the exact order the
@@ -53,6 +66,7 @@ APP_HEADERS = $(wildcard $(LIB_DIR)/*.h) ../../riscv_subsystem/sw/utils.h
 all: check-app $(OUT).hex $(OUT).sim.hex $(OUT).vivado.hex
 	@echo ""
 	@echo "APP=$(APP) built from $(SOURCE)"
+	@echo "  SIMULATION_TESTING=$(SIMULATION_TESTING)  DEBUG=$(DEBUG)"
 	@echo "  $(OUT).hex          (UART upload / load.py)"
 	@echo "  $(OUT).sim.hex      (\$$readmemh: cocotb sim + synthesis BRAM preload)"
 	@echo "  $(OUT).vivado.hex   (Vivado byte-order loader)"
@@ -68,20 +82,40 @@ check-app:
 .PHONY: list-apps
 list-apps:
 	@echo "Available APP names (default: vebpf_firewall_syn):"
+	@printf "  %-34s %-22s %s\n" "APP" "SIMULATION_TESTING" "DEBUG"
 	@for d in $(APPS_DIR)/*/; do \
-		[ -f "$$d/main.c" ] && printf "  %s\n" "$$(basename $$d)"; \
+		[ -f "$$d/main.c" ] || continue; \
+		n=$$(basename $$d); \
+		sim=$$(sed -n 's/^SIMULATION_TESTING *?*= *\([0-9]\).*/\1/p' $$d/app.mk 2>/dev/null); \
+		dbg=$$(sed -n 's/^DEBUG *?*= *\([0-9]\).*/\1/p' $$d/app.mk 2>/dev/null); \
+		printf "  %-34s %-22s %s\n" "$$n" "$${sim:-0}" "$${dbg:-0}"; \
 	done
+	@echo ""
+	@echo "Override per build, e.g.: make APP=vebpf_firewall_syn DEBUG=1"
 
 $(BUILD_DIR):
 	@mkdir -p $(BUILD_DIR)
 
-$(RESET_HANDLER): ./sw/Reset_Handler.S
+# Rebuild everything when a build flag changes. The recipe only rewrites the
+# stamp when the value actually differs, so an unchanged flag set leaves the
+# mtime alone and nothing rebuilds.
+FLAGS_SIG   := SIMULATION_TESTING=$(SIMULATION_TESTING) DEBUG=$(DEBUG)
+FLAGS_STAMP := $(BUILD_DIR)/.build_flags
+
+.PHONY: FORCE
+FORCE:
+
+$(FLAGS_STAMP): FORCE | $(BUILD_DIR)
+	@printf '%s\n' '$(FLAGS_SIG)' | cmp -s - $@ 2>/dev/null || \
+		{ printf '%s\n' '$(FLAGS_SIG)' > $@; }
+
+$(RESET_HANDLER): ./sw/Reset_Handler.S $(FLAGS_STAMP)
 	$(CROSS)gcc $(CROSSCFLAGS) -c ./sw/Reset_Handler.S -o $@
 
-$(BUILD_DIR)/%.o: $(LIB_DIR)/%.c $(LIB_DIR)/%.h | $(BUILD_DIR)
+$(BUILD_DIR)/%.o: $(LIB_DIR)/%.c $(LIB_DIR)/%.h $(FLAGS_STAMP) | $(BUILD_DIR)
 	$(CROSS)gcc $(CROSSCFLAGS) -c -o $@ $<
 
-$(OUT).o: $(SOURCE) $(APP_HEADERS) | $(BUILD_DIR)
+$(OUT).o: $(SOURCE) $(APP_HEADERS) $(FLAGS_STAMP) | $(BUILD_DIR)
 	$(CROSS)gcc $(CROSSCFLAGS) -c -o $@ $<
 
 # pkt.c depended on firmware.o in the original Makefile; preserved so the

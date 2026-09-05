@@ -137,6 +137,21 @@ flags can never mix.
    `0x1000001C` `TIMER`, `mmio.h` calls it `I2C`. Not currently harmful; worth
    reconciling.
 
+10. **Network-subsystem pointers derive from `ETH_NIC`** (`board.h`), whose
+    authority is `[INSTANTIATIONS.cpu.MAP.eth_nic]` in the consuming project's
+    `system.tml`. Add new pointers into that region as `ETH_NIC + <offset>`,
+    never as an absolute literal — that is the whole point of the base existing.
+    Two caveats already written into the file: `board.h` is included **before**
+    `riscv_subsystem/sw/utils.h`, so the address-map header is not visible there
+    and the `#ifndef ETH_NIC` guard does *not* mean "defer to `address_map.h`";
+    and `_buspic` is deliberately left as a literal because its decode is
+    unconfirmed.
+
+11. **Refactors that only rewrite constants must be no-ops.** The right gate is
+    building **every** app before and after and comparing md5s — that is how the
+    `ETH_NIC` change was validated. If a "pure refactor" moves a single byte,
+    stop and find out why.
+
 ## Related
 
 - [VebpfManyCore](https://github.com/zaidtahirbutt/VebpfManyCore) — the full system (has its own `CLAUDE.md`)

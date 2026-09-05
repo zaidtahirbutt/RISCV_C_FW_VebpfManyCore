@@ -35,6 +35,28 @@
 #define DEBUG 0
 #endif
 
+// ---------------------------------------------------------------------------
+// Network-subsystem base address.
+//
+// AUTHORITY: [INSTANTIATIONS.cpu.MAP.eth_nic] in the consuming project's
+// system.tml, which is what disl-core uses to place the peripheral in the
+// generated hardware:
+//     eth_nic  ORIGIN = 0x20000000   LENGTH = 0x01900000
+//
+// Every pointer into the network subsystem below is derived from this, so
+// moving the peripheral in system.tml is a one-line change here rather than a
+// hunt for eight absolute literals. Offsets are given relative to this base.
+//
+// The #ifndef lets a build override it (-DETH_NIC=0x...). Note that board.h is
+// included BEFORE riscv_subsystem/sw/utils.h in every app, so the address map
+// header that utils.h pulls in is NOT visible at this point -- this definition
+// is the effective one unless something defines ETH_NIC on the command line.
+// disl-core's [ADDRESS_MAP_HEADER] MODE="check" independently verifies that the
+// other peripherals here agree with the hardware map.
+#ifndef ETH_NIC
+#define ETH_NIC 0x20000000
+#endif
+
 // this constant should be equal to TX_PKT_DESC_TABLE_DEPTH parameter from network subsystem
 #define DESC_TABLE_TX_DEPTH 4  // should be multiple of 2 and if changed here, it should be changed in network subsystem hardware
 	// VIP!! -> ALSO DEFINED IN pkt.h SO CHANGE IN THAT FILE AS WELL IF ANY CHANGE NEEDS TO BE MADE HERE
@@ -255,6 +277,13 @@ static volatile unsigned *const _pwrcount = ((unsigned *)0x00600020);
 #ifdef	BUSPIC_ACCESS
 #define	_BOARD_HAS_BUSPIC
 //static volatile unsigned *const _buspic = ((unsigned *)0x00600008);  //11000000000000000001000
+// NOT derived from ETH_NIC deliberately. 0x21600008 does fall inside the
+// eth_nic window (base + 0x1600008), but this is an interrupt controller
+// rather than network logic, and the legacy comment below implies a
+// different decode (0x21600008 - 0x21000000 = 0x600008, whereas every
+// pointer above subtracts the 0x20000000 base). Left as a literal until
+// someone confirms which it is -- rewriting it as ETH_NIC + offset would
+// be arithmetically identical but might document it wrongly.
 static volatile unsigned *const _buspic = ((unsigned *)0x21600008);  //11000000000000000001000
 #endif	// BUSPIC_ACCESS
 
@@ -297,7 +326,7 @@ static volatile WBSCOPE *const _enetscope = ((WBSCOPE *)0x00200000);
 #endif	// NETSCOPE_SCOPE
 
 #define	_BOARD_HAS_ENETB
-static volatile unsigned *const _netbrx = ((unsigned *)0x20800000);  // 0x00800000 = 1000 0000 0000 0000 0000 0000
+static volatile unsigned *const _netbrx = ((unsigned *)(ETH_NIC + 0x800000));  // 0x00800000 = 1000 0000 0000 0000 0000 0000
 // _netbrx = 0x00800000 = 1000 0000 0000 0000 0000 0000 
 	// _netbrx[23] = 1 // with 2 addressing bits removed _netbrx[21] = 1
 		// if 512 words (2048 bytes , i.e., from 0 till 2047) of pkt are read, then 
@@ -329,7 +358,7 @@ void * MemcpyLW(void* dst, const void* src, unsigned int cnt)
     return dst;
 }
 */
-static volatile unsigned *const _netbtx = ((unsigned *)(0x20800000 + (0x0400<<1)));  //// static volatile unsigned *const _netbtx = ((unsigned *)(0x00800000 + (0x0400<<1==800)));  //
+static volatile unsigned *const _netbtx = ((unsigned *)(ETH_NIC + 0x800000 + (0x0400<<1)));  //// static volatile unsigned *const _netbtx = ((unsigned *)(0x00800000 + (0x0400<<1==800)));  //
 // The tx pkt byte address is _netbtx = 0x00800800 = 1000 0000 0000 1000 0000 0000, _netbtx[23] & _netbtx[11] = 1
 // 2 bits removed _netbtx[21] & _netbtx[9] = 1
 	// the tx pkt byte address for max byte len 2048 is (+2047 (0x7ff)) -> _netbtx = 0x00800FFF =  1000 0000 0000 1111 1111 1111, _netbtx[23] & _netbtx[11:0] = 1
@@ -337,7 +366,7 @@ static volatile unsigned *const _netbtx = ((unsigned *)(0x20800000 + (0x0400<<1)
 #define NET1_ACCESS
 #ifdef	NET1_ACCESS
 #define	_BOARD_HAS_ENETP
-static volatile ENETPACKET *const _net1 = ((ENETPACKET *)0x20500000);  // Ethnet data struct pointer address
+static volatile ENETPACKET *const _net1 = ((ENETPACKET *)(ETH_NIC + 0x500000));  // Ethnet data struct pointer address
 // ENETPACKET *const _net1 = 0x00500000 = 0101 0000 0000 0000 0000 0000
 	// _net1[22] & _net1[20] = 1 // with 2 addressing bits removed _net1[20] & _net1[18] = 1
 		// from v file.. The following address condition is met i.e., for accessing CSRs in Network Subsystem
@@ -442,7 +471,7 @@ typedef struct NETWORK_CSR_S {
 
 
 // this should be the default setting
-static volatile NETWORK_CSR *const _net_csrs = ((NETWORK_CSR *)0x20900000);  // data struct pointer address
+static volatile NETWORK_CSR *const _net_csrs = ((NETWORK_CSR *)(ETH_NIC + 0x900000));  // data struct pointer address
 
 // for integration with PCIe in DISLv2 .. add _boardHv2 at end of c file with this setting
 // static volatile NETWORK_CSR *const _net_csrs = ((NETWORK_CSR *)0x30900000);  // data struct pointer address
@@ -669,7 +698,7 @@ static volatile NETWORK_CSR *const _net_csrs = ((NETWORK_CSR *)0x20900000);  // 
 
 /*  BLOCK COMMENT .. Previous Network Subsystem Pointers
 
-	static volatile unsigned *const _net_mem_addr = ((unsigned *)(0x20900000)); 
+	static volatile unsigned *const _net_mem_addr = ((unsigned *)(ETH_NIC + 0x900000)); 
 	// 0x20900000 after addr is normalized, 0x00900000 =  0000 0000 1001 0000 0000 0000 0000 0000  // _net_mem_addr[23] & _net_mem_addr[20] = 1
 		// two LSB bits removed, _net_mem_addr[21] & _net_mem_addr[18] = 1
 	// this pointer is used to write the 32 bit pointer address to the network subsystem to 
@@ -679,7 +708,7 @@ static volatile NETWORK_CSR *const _net_csrs = ((NETWORK_CSR *)0x20900000);  // 
 	// 0x20900004 i.e., 00100000100100000000000000000100 i.e., add b100 to the previous address.
 		// reassigning _net_mem_csr1 according to this below..
 
-	static volatile unsigned *const _net_mem_csr1 = ((unsigned *)(0x20910004));
+	static volatile unsigned *const _net_mem_csr1 = ((unsigned *)(ETH_NIC + 0x910004));
 	// 0x20910004 after addr is normalized, 0x00900004 =  0000 0000 1001 0001 0000 0000 0000 0100  // _net_mem_csr1[23] & _net_mem_csr1[20] & _net_mem_csr1[2] = 1
 		// with 2 LSB bits removed,  _net_mem_csr1[21] & _net_mem_csr1[18] & _net_mem_csr1[0] = 1
 
@@ -694,7 +723,7 @@ static volatile NETWORK_CSR *const _net_csrs = ((NETWORK_CSR *)0x20900000);  // 
 		// that the c code gave to the network subsystem and compare if it is the same word as our chosen word
 
 	// ptr for writing allocated size for rx pkts writing to memory 
-	static volatile unsigned *const _net_alloc_mem_size = ((unsigned *)(0x20910008));
+	static volatile unsigned *const _net_alloc_mem_size = ((unsigned *)(ETH_NIC + 0x910008));
 	// 0x20910008 after addr is normalized, 0x00900008 =  0000 0000 1001 0001 0000 0000 0000 1000  // _net_alloc_mem_size[23] & _net_alloc_mem_size[20] & _net_alloc_mem_size[3] = 1
 		// with 2 LSB bits removed,  _net_alloc_mem_size[21] & _net_alloc_mem_size[18] & _net_alloc_mem_size[1] = 1   
 
